@@ -68,7 +68,7 @@ user node['nginx']['user'] do
   home "/var/www"
 end
 
-node.run_state['nginx_force_recompile'] = false
+node.run_state['nginx_force_recompile'] = true
 node.run_state['nginx_configure_flags'] =
   node['nginx']['source']['default_configure_flags'] | node['nginx']['configure_flags']
 
@@ -79,10 +79,14 @@ end
 configure_flags = node.run_state['nginx_configure_flags']
 nginx_force_recompile = node.run_state['nginx_force_recompile']
 
+bash "untar_nginx_source" do
+  code "tar zxf #{::File.basename(src_filepath)} -C #{::File.dirname(src_filepath)}"
+  not_if { File.exist?(src_filepath)} 
+end
+
 bash "compile_nginx_source" do
   cwd ::File.dirname(src_filepath)
   code <<-EOH
-    tar zxf #{::File.basename(src_filepath)} -C #{::File.dirname(src_filepath)}
     cd nginx-#{node['nginx']['version']} && ./configure #{node.run_state['nginx_configure_flags'].join(" ")}
     make && make install
     rm -f #{node['nginx']['dir']}/nginx.conf
